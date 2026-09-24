@@ -22,7 +22,7 @@ import {
   Power,
 } from 'lucide-react';
 import { XeroxOrder, XeroxShop, ShopEarningsAnalytics } from '@/types';
-import { getOrders, getShops, updateOrderStatus, calculateShopAnalytics, updateShopRates, deleteShop, deleteOrder, toggleShopOpenStatus } from '@/lib/storage';
+import { fetchOrdersFromServer, fetchShopsFromServer, updateOrderStatus, calculateShopAnalytics, updateShopRates, deleteShop, deleteOrder, toggleShopOpenStatus } from '@/lib/storage';
 
 interface ShopOwnerDashboardProps {
   authenticatedShopId?: string;
@@ -49,8 +49,8 @@ export function ShopOwnerDashboard({ authenticatedShopId }: ShopOwnerDashboardPr
   const [isOpenStatus, setIsOpenStatus] = useState<boolean>(true);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
 
-  const reloadData = () => {
-    const allShops = getShops();
+  const reloadData = async () => {
+    const allShops = await fetchShopsFromServer();
     setShops(allShops);
 
     const targetShopId = authenticatedShopId || selectedShopId || (allShops[0] ? allShops[0].id : '');
@@ -70,7 +70,7 @@ export function ShopOwnerDashboard({ authenticatedShopId }: ShopOwnerDashboardPr
         setIsOpenStatus(currentShop.isOpen);
       }
 
-      const allOrders = getOrders().filter((o) => o.shopId === targetShopId);
+      const allOrders = await fetchOrdersFromServer(targetShopId);
       setOrders(allOrders);
 
       const stats = calculateShopAnalytics(targetShopId, timeframe);
@@ -80,37 +80,39 @@ export function ShopOwnerDashboard({ authenticatedShopId }: ShopOwnerDashboardPr
 
   useEffect(() => {
     reloadData();
+    const interval = setInterval(reloadData, 3000);
+    return () => clearInterval(interval);
   }, [selectedShopId, timeframe, authenticatedShopId]);
 
-  const handleToggleOpenStatus = () => {
+  const handleToggleOpenStatus = async () => {
     if (!selectedShopId) return;
     const nextStatus = !isOpenStatus;
     setIsOpenStatus(nextStatus);
-    toggleShopOpenStatus(selectedShopId, nextStatus);
+    await toggleShopOpenStatus(selectedShopId, nextStatus);
     reloadData();
   };
 
-  const handleStatusChange = (orderId: string, newStatus: XeroxOrder['status']) => {
-    updateOrderStatus(orderId, newStatus);
+  const handleStatusChange = async (orderId: string, newStatus: XeroxOrder['status']) => {
+    await updateOrderStatus(orderId, newStatus);
     reloadData();
   };
 
-  const handleDeleteOrder = (orderId: string) => {
+  const handleDeleteOrder = async (orderId: string) => {
     if (confirm('Are you sure you want to delete this order?')) {
-      deleteOrder(orderId);
+      await deleteOrder(orderId);
       reloadData();
     }
   };
 
-  const handleDeleteCurrentShop = () => {
+  const handleDeleteCurrentShop = async () => {
     if (selectedShopId && confirm('Are you sure you want to delete this shop? This action cannot be undone.')) {
-      deleteShop(selectedShopId);
+      await deleteShop(selectedShopId);
       setSelectedShopId('');
       reloadData();
     }
   };
 
-  const handleSaveShopSettings = (e: React.FormEvent) => {
+  const handleSaveShopSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedShopId) return;
 
@@ -124,7 +126,7 @@ export function ShopOwnerDashboard({ authenticatedShopId }: ShopOwnerDashboardPr
       cornerClip: parseFloat(cornerClip) || 10.0,
     };
 
-    updateShopRates(selectedShopId, newRates, googleMapsUrl);
+    await updateShopRates(selectedShopId, newRates, googleMapsUrl);
     setSaveSuccessMsg('Shop Rates & Google Maps URL updated successfully!');
     setTimeout(() => setSaveSuccessMsg(''), 3000);
     reloadData();
@@ -187,7 +189,6 @@ export function ShopOwnerDashboard({ authenticatedShopId }: ShopOwnerDashboardPr
                 {activeShop ? activeShop.name : 'Shop Owner Console'}
               </h1>
               
-              {/* OPEN / CLOSED SHOP STATUS TOGGLE BUTTON */}
               <button
                 type="button"
                 onClick={handleToggleOpenStatus}

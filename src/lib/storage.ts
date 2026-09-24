@@ -1,51 +1,147 @@
 import { XeroxShop, XeroxOrder, ShopEarningsAnalytics } from '@/types';
 
-export const INITIAL_SHOPS: XeroxShop[] = [];
+export const INITIAL_SHOPS: XeroxShop[] = [
+  {
+    id: 'shop-sangamesh',
+    name: 'Sangamesh Xerox & Digital Print Hub',
+    ownerName: 'Sangamesh',
+    ownerPhone: '+91 98765 43210',
+    ownerEmail: 'sangamesh.print@gmail.com',
+    ownerUsername: 'sangamesh',
+    ownerPassword: 'bhagya@123',
+    address: 'Opp. Main College Gate, Hosur Road, Bangalore',
+    lat: 12.9344,
+    lng: 77.6060,
+    rating: 4.9,
+    reviewCount: 150,
+    isOpen: true,
+    openingHours: '08:00 AM - 10:00 PM',
+    rates: {
+      bwSingle: 1.50,
+      bwDouble: 2.50,
+      colorSingle: 6.00,
+      colorDouble: 10.00,
+      spiralBinding: 25.00,
+      hardBinding: 75.00,
+      cornerClip: 10.00,
+    },
+    features: ['Duplex High Speed Xerox', 'Color Printing', 'Spiral & Hard Binding'],
+  },
+];
+
 export const INITIAL_ORDERS: XeroxOrder[] = [];
 
+// Local cache
+let memoryShops: XeroxShop[] = INITIAL_SHOPS;
+let memoryOrders: XeroxOrder[] = INITIAL_ORDERS;
+
+// Async API Fetchers for Server-Wide Persistence across all browsers & devices
+export async function fetchShopsFromServer(): Promise<XeroxShop[]> {
+  try {
+    const res = await fetch('/api/shops', { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        memoryShops = data;
+        saveShopsLocal(data);
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch server shops:', err);
+  }
+  return getShops();
+}
+
+export async function fetchOrdersFromServer(shopId?: string): Promise<XeroxOrder[]> {
+  try {
+    const url = shopId ? `/api/orders?shopId=${shopId}` : '/api/orders';
+    const res = await fetch(url, { cache: 'no-store' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        memoryOrders = data;
+        saveOrdersLocal(data);
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch server orders:', err);
+  }
+  return getOrders();
+}
+
 export function getShops(): XeroxShop[] {
-  if (typeof window === 'undefined') return INITIAL_SHOPS;
+  if (typeof window === 'undefined') return memoryShops;
   const stored = localStorage.getItem('xerox_shops');
   if (!stored) {
-    localStorage.setItem('xerox_shops', JSON.stringify(INITIAL_SHOPS));
-    return INITIAL_SHOPS;
+    localStorage.setItem('xerox_shops', JSON.stringify(memoryShops));
+    return memoryShops;
   }
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    return parsed;
   } catch {
-    return INITIAL_SHOPS;
+    return memoryShops;
   }
 }
 
-export function saveShops(shops: XeroxShop[]): void {
+function saveShopsLocal(shops: XeroxShop[]): void {
+  memoryShops = shops;
   if (typeof window !== 'undefined') {
     localStorage.setItem('xerox_shops', JSON.stringify(shops));
   }
 }
 
-export function addShop(shop: XeroxShop): void {
+export async function addShop(shop: XeroxShop): Promise<void> {
   const current = getShops();
-  const updated = [shop, ...current];
-  saveShops(updated);
+  const updated = [shop, ...current.filter((s) => s.id !== shop.id)];
+  saveShopsLocal(updated);
+
+  try {
+    await fetch('/api/shops', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(shop),
+    });
+  } catch (err) {
+    console.warn('Failed to post shop to server:', err);
+  }
 }
 
-export function deleteShop(shopId: string): void {
+export async function deleteShop(shopId: string): Promise<void> {
   const current = getShops();
   const updated = current.filter((s) => s.id !== shopId);
-  saveShops(updated);
+  saveShopsLocal(updated);
+
+  try {
+    await fetch(`/api/shops?id=${shopId}`, { method: 'DELETE' });
+  } catch (err) {
+    console.warn('Failed to delete shop on server:', err);
+  }
 }
 
-export function toggleShopOpenStatus(shopId: string, isOpen: boolean): void {
+export async function toggleShopOpenStatus(shopId: string, isOpen: boolean): Promise<void> {
   const shops = getShops();
   const updated = shops.map((s) => (s.id === shopId ? { ...s, isOpen } : s));
-  saveShops(updated);
+  saveShopsLocal(updated);
+
+  try {
+    await fetch('/api/shops', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shopId, action: 'toggleOpen', isOpen }),
+    });
+  } catch (err) {
+    console.warn('Failed to update shop status on server:', err);
+  }
 }
 
-export function updateShopRates(
+export async function updateShopRates(
   shopId: string,
   newRates: XeroxShop['rates'],
   googleMapsUrl?: string
-): void {
+): Promise<void> {
   const shops = getShops();
   const updated = shops.map((s) => {
     if (s.id === shopId) {
@@ -57,45 +153,82 @@ export function updateShopRates(
     }
     return s;
   });
-  saveShops(updated);
+  saveShopsLocal(updated);
+
+  try {
+    await fetch('/api/shops', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shopId, action: 'updateRates', rates: newRates, googleMapsUrl }),
+    });
+  } catch (err) {
+    console.warn('Failed to update shop rates on server:', err);
+  }
 }
 
 export function getOrders(): XeroxOrder[] {
-  if (typeof window === 'undefined') return INITIAL_ORDERS;
+  if (typeof window === 'undefined') return memoryOrders;
   const stored = localStorage.getItem('xerox_orders');
   if (!stored) {
-    localStorage.setItem('xerox_orders', JSON.stringify(INITIAL_ORDERS));
-    return INITIAL_ORDERS;
+    localStorage.setItem('xerox_orders', JSON.stringify(memoryOrders));
+    return memoryOrders;
   }
   try {
     return JSON.parse(stored);
   } catch {
-    return INITIAL_ORDERS;
+    return memoryOrders;
   }
 }
 
-export function saveOrders(orders: XeroxOrder[]): void {
+function saveOrdersLocal(orders: XeroxOrder[]): void {
+  memoryOrders = orders;
   if (typeof window !== 'undefined') {
     localStorage.setItem('xerox_orders', JSON.stringify(orders));
   }
 }
 
-export function addOrder(order: XeroxOrder): void {
+export async function addOrder(order: XeroxOrder): Promise<void> {
   const current = getOrders();
   const updated = [order, ...current];
-  saveOrders(updated);
+  saveOrdersLocal(updated);
+
+  try {
+    await fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    });
+  } catch (err) {
+    console.warn('Failed to post order to server:', err);
+  }
 }
 
-export function deleteOrder(orderId: string): void {
+export async function deleteOrder(orderId: string): Promise<void> {
   const current = getOrders();
   const updated = current.filter((o) => o.id !== orderId);
-  saveOrders(updated);
+  saveOrdersLocal(updated);
+
+  try {
+    await fetch(`/api/orders?id=${orderId}`, { method: 'DELETE' });
+  } catch (err) {
+    console.warn('Failed to delete order on server:', err);
+  }
 }
 
-export function updateOrderStatus(orderId: string, status: XeroxOrder['status']): void {
+export async function updateOrderStatus(orderId: string, status: XeroxOrder['status']): Promise<void> {
   const current = getOrders();
   const updated = current.map((o) => (o.id === orderId ? { ...o, status, updatedAt: new Date().toISOString() } : o));
-  saveOrders(updated);
+  saveOrdersLocal(updated);
+
+  try {
+    await fetch('/api/orders', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId, status }),
+    });
+  } catch (err) {
+    console.warn('Failed to update order status on server:', err);
+  }
 }
 
 export function authenticateUser(

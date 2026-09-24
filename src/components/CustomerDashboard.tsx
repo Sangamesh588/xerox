@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Clock, CheckCircle2, Printer, RefreshCw, FileText, Download } from 'lucide-react';
 import { XeroxOrder } from '@/types';
-import { getOrders } from '@/lib/storage';
+import { fetchOrdersFromServer, getOrders } from '@/lib/storage';
 
 interface CustomerDashboardProps {
   onNewOrder: () => void;
@@ -13,13 +13,14 @@ interface CustomerDashboardProps {
 export function CustomerDashboard({ onNewOrder, highlightOrderId }: CustomerDashboardProps) {
   const [orders, setOrders] = useState<XeroxOrder[]>([]);
 
-  const loadOrders = () => {
-    setOrders(getOrders());
+  const loadOrders = async () => {
+    const fetched = await fetchOrdersFromServer();
+    setOrders(fetched);
   };
 
   useEffect(() => {
     loadOrders();
-    const interval = setInterval(loadOrders, 5000);
+    const interval = setInterval(loadOrders, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -140,7 +141,6 @@ export function CustomerDashboard({ onNewOrder, highlightOrderId }: CustomerDash
                   </div>
                 </div>
 
-                {/* Progress Step Bar */}
                 <div className="py-6">
                   <div className="relative flex items-center justify-between max-w-2xl mx-auto">
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-800 -z-0" />

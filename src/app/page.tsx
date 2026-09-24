@@ -13,7 +13,7 @@ import { LocationModal } from '@/components/LocationModal';
 import { LoginModal } from '@/components/LoginModal';
 
 import { DocumentDetails, PrintConfiguration, XeroxShop, XeroxOrder } from '@/types';
-import { getShops } from '@/lib/storage';
+import { fetchShopsFromServer, getShops } from '@/lib/storage';
 import { calculatePrice } from '@/lib/pricing';
 import { Sparkles, Printer, Zap } from 'lucide-react';
 
@@ -34,7 +34,7 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<'booking' | 'orders'>('booking');
   const [recentOrderId, setRecentOrderId] = useState<string | undefined>();
 
-  // Location State (Initial null until GPS triggers automatically)
+  // Location State
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [userLocationName, setUserLocationName] = useState<string>('Detecting location...');
 
@@ -54,7 +54,6 @@ export default function Home() {
     orientation: 'portrait',
   });
 
-  // AUTOMATIC GPS LOCATION REQUEST ON WEBSITE ENTER
   useEffect(() => {
     if (typeof window !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -65,17 +64,16 @@ export default function Home() {
         },
         (err) => {
           console.warn('GPS location access denied or timeout:', err);
-          // Fallback location
           setUserCoords({ lat: 12.9344, lng: 77.6060 });
           setUserLocationName('College Road, Bangalore');
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        { enableHighAccuracy: false, timeout: 5000 }
       );
     }
   }, []);
 
-  const reloadShopsList = () => {
-    const loadedShops = getShops();
+  const reloadShopsList = async () => {
+    const loadedShops = await fetchShopsFromServer();
     setShops(loadedShops);
     if (loadedShops.length > 0 && !selectedShop) {
       setSelectedShop(loadedShops[0]);
@@ -84,7 +82,7 @@ export default function Home() {
 
   useEffect(() => {
     reloadShopsList();
-    const interval = setInterval(reloadShopsList, 3000);
+    const interval = setInterval(reloadShopsList, 2000);
     return () => clearInterval(interval);
   }, []);
 
