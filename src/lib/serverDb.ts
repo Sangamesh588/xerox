@@ -126,75 +126,94 @@ function isRedisConfigured(): boolean {
 }
 
 function ensureDataDir(): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+  } catch (err) {
+    // Ephemeral filesystem on Vercel
   }
 }
 
-// In-memory cache for ultra-fast response
-let cachedShops: XeroxShop[] | null = null;
-let cachedOrders: XeroxOrder[] | null = null;
+// Global server memory store to persist across warm serverless functions
+declare global {
+  // eslint-disable-next-line no-var
+  var __xerox_shops: XeroxShop[] | undefined;
+  // eslint-disable-next-line no-var
+  var __xerox_orders: XeroxOrder[] | undefined;
+  // eslint-disable-next-line no-var
+  var __xerox_initialized: boolean | undefined;
+}
 
 // --- SHOPS STORAGE ---
 
 export async function getStoredShops(): Promise<XeroxShop[]> {
   ensureDataDir();
 
-  // Try Redis if configured
+  // 1. Try Redis if configured
   if (isRedisConfigured()) {
     try {
       const data = await redis.get<XeroxShop[]>(SHOPS_KEY);
-      if (Array.isArray(data) && data.length > 0) {
-        cachedShops = data;
+      if (Array.isArray(data)) {
+        globalThis.__xerox_shops = data;
+        globalThis.__xerox_initialized = true;
         return data;
       }
     } catch (err) {
-      console.warn('Redis read failed, falling back to local file storage:', err);
+      console.warn('Redis read failed, falling back to storage:', err);
     }
   }
 
-  // Use file storage
+  // 2. Try in-memory global state if already initialized
+  if (globalThis.__xerox_initialized && Array.isArray(globalThis.__xerox_shops)) {
+    return globalThis.__xerox_shops;
+  }
+
+  // 3. Try reading from filesystem
   try {
     if (fs.existsSync(SHOPS_FILE)) {
       const raw = fs.readFileSync(SHOPS_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        cachedShops = parsed;
+      if (Array.isArray(parsed)) {
+        globalThis.__xerox_shops = parsed;
+        globalThis.__xerox_initialized = true;
         return parsed;
       }
     }
   } catch (err) {
-    console.error('Error reading shops.json:', err);
+    console.warn('File read fallback failed:', err);
   }
 
-  // Seed default shops if none exist
-  cachedShops = DEFAULT_SHOPS;
+  // 4. Initial cold start seed: DEFAULT_SHOPS
+  globalThis.__xerox_shops = DEFAULT_SHOPS;
+  globalThis.__xerox_initialized = true;
+
   try {
     fs.writeFileSync(SHOPS_FILE, JSON.stringify(DEFAULT_SHOPS, null, 2), 'utf-8');
-    if (isRedisConfigured()) {
-      redis.set(SHOPS_KEY, DEFAULT_SHOPS).catch(() => {});
-    }
-  } catch (err) {
-    console.error('Error saving default shops:', err);
+  } catch (err) {}
+
+  if (isRedisConfigured()) {
+    redis.set(SHOPS_KEY, DEFAULT_SHOPS).catch(() => {});
   }
 
-  return cachedShops;
+  return globalThis.__xerox_shops;
 }
 
 export async function saveStoredShops(shops: XeroxShop[]): Promise<void> {
   ensureDataDir();
-  cachedShops = shops;
+  globalThis.__xerox_shops = shops;
+  globalThis.__xerox_initialized = true;
 
   try {
     fs.writeFileSync(SHOPS_FILE, JSON.stringify(shops, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing shops.json:', err);
-  }
+  } catch (err) {}
 
   if (isRedisConfigured()) {
-    redis.set(SHOPS_KEY, shops).catch((err) => {
+    try {
+      await redis.set(SHOPS_KEY, shops);
+    } catch (err) {
       console.warn('Failed to sync shops to Redis:', err);
-    });
+    }
   }
 }
 
@@ -207,12 +226,16 @@ export async function getStoredOrders(): Promise<XeroxOrder[]> {
     try {
       const data = await redis.get<XeroxOrder[]>(ORDERS_KEY);
       if (Array.isArray(data)) {
-        cachedOrders = data;
+        globalThis.__xerox_orders = data;
         return data;
       }
     } catch (err) {
-      console.warn('Redis read orders failed, falling back to file storage:', err);
+      console.warn('Redis read orders failed:', err);
     }
+  }
+
+  if (Array.isArray(globalThis.__xerox_orders)) {
+    return globalThis.__xerox_orders;
   }
 
   try {
@@ -220,31 +243,29 @@ export async function getStoredOrders(): Promise<XeroxOrder[]> {
       const raw = fs.readFileSync(ORDERS_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        cachedOrders = parsed;
+        globalThis.__xerox_orders = parsed;
         return parsed;
       }
     }
-  } catch (err) {
-    console.error('Error reading orders.json:', err);
-  }
+  } catch (err) {}
 
-  cachedOrders = cachedOrders || [];
-  return cachedOrders;
+  globalThis.__xerox_orders = globalThis.__xerox_orders || [];
+  return globalThis.__xerox_orders;
 }
 
 export async function saveStoredOrders(orders: XeroxOrder[]): Promise<void> {
   ensureDataDir();
-  cachedOrders = orders;
+  globalThis.__xerox_orders = orders;
 
   try {
     fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2), 'utf-8');
-  } catch (err) {
-    console.error('Error writing orders.json:', err);
-  }
+  } catch (err) {}
 
   if (isRedisConfigured()) {
-    redis.set(ORDERS_KEY, orders).catch((err) => {
+    try {
+      await redis.set(ORDERS_KEY, orders);
+    } catch (err) {
       console.warn('Failed to sync orders to Redis:', err);
-    });
+    }
   }
 }

@@ -95,10 +95,12 @@ export function AdminDashboard() {
   };
 
   const handleDeleteShop = async (shopId: string, shopName: string) => {
-    if (confirm(`Are you sure you want to delete "${shopName}"?`)) {
-      await deleteShop(shopId);
-      await loadShops();
-      setSuccessMsg(`"${shopName}" was deleted.`);
+    if (window.confirm(`Are you sure you want to delete "${shopName}"?`)) {
+      // Optimistically update UI immediately
+      setShops((prev) => prev.filter((s) => s.id !== shopId));
+      const updated = await deleteShop(shopId);
+      setShops(updated);
+      setSuccessMsg(`"${shopName}" was deleted successfully.`);
       setTimeout(() => setSuccessMsg(''), 4000);
     }
   };

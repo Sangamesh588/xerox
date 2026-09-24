@@ -112,10 +112,12 @@ export function ShopOwnerDashboard({ authenticatedShopId }: ShopOwnerDashboardPr
   };
 
   const handleDeleteCurrentShop = async () => {
-    if (selectedShopId && confirm('Are you sure you want to delete this shop? This action cannot be undone.')) {
-      await deleteShop(selectedShopId);
+    if (selectedShopId && window.confirm('Are you sure you want to delete this shop? This action cannot be undone.')) {
+      const targetId = selectedShopId;
       setSelectedShopId('');
-      reloadData();
+      setShops((prev) => prev.filter((s) => s.id !== targetId));
+      await deleteShop(targetId);
+      await reloadData();
     }
   };
 

@@ -8,12 +8,25 @@ import { XeroxShop, XeroxOrder, ShopEarningsAnalytics } from '@/types';
 
 // --- SHOPS ---
 
+function getDeletedShopIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem('xerox_deleted_shops');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchShopsFromServer(): Promise<XeroxShop[]> {
+  const deletedIds = getDeletedShopIds();
   try {
     const res = await fetch('/api/shops', { cache: 'no-store' });
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) return data;
+      if (Array.isArray(data)) {
+        return data.filter((s: XeroxShop) => !deletedIds.includes(s.id));
+      }
     }
   } catch (err) {
     console.warn('Failed to fetch shops from server:', err);
@@ -22,6 +35,14 @@ export async function fetchShopsFromServer(): Promise<XeroxShop[]> {
 }
 
 export async function addShop(shop: XeroxShop): Promise<void> {
+  // If this shop was previously deleted, un-delete it
+  if (typeof window !== 'undefined') {
+    try {
+      const deletedIds = getDeletedShopIds().filter((id) => id !== shop.id);
+      localStorage.setItem('xerox_deleted_shops', JSON.stringify(deletedIds));
+    } catch {}
+  }
+
   try {
     await fetch('/api/shops', {
       method: 'POST',
@@ -33,12 +54,33 @@ export async function addShop(shop: XeroxShop): Promise<void> {
   }
 }
 
-export async function deleteShop(shopId: string): Promise<void> {
-  try {
-    await fetch(`/api/shops?id=${shopId}`, { method: 'DELETE' });
-  } catch (err) {
-    console.warn('Failed to delete shop:', err);
+export async function deleteShop(shopId: string): Promise<XeroxShop[]> {
+  // Track in local client storage so deleted shops are never resurrected
+  if (typeof window !== 'undefined') {
+    try {
+      const deletedIds = getDeletedShopIds();
+      if (!deletedIds.includes(shopId)) {
+        deletedIds.push(shopId);
+        localStorage.setItem('xerox_deleted_shops', JSON.stringify(deletedIds));
+      }
+    } catch {}
   }
+
+  try {
+    const res = await fetch(`/api/shops?id=${encodeURIComponent(shopId)}`, { method: 'DELETE' });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.shops)) {
+        const deletedIds = getDeletedShopIds();
+        return data.shops.filter((s: XeroxShop) => !deletedIds.includes(s.id));
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to delete shop on server:', err);
+  }
+
+  const fresh = await fetchShopsFromServer();
+  return fresh.filter((s) => s.id !== shopId);
 }
 
 export async function toggleShopOpenStatus(shopId: string, isOpen: boolean): Promise<void> {
