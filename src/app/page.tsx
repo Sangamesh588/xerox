@@ -178,7 +178,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-blue-500 selection:text-white flex flex-col">
+    <div className="min-h-screen bg-slate-50 text-gray-900 font-sans selection:bg-blue-500 selection:text-white flex flex-col w-full max-w-full overflow-x-hidden">
       
       <Header
         currentRole={role}
@@ -191,20 +191,20 @@ export default function Home() {
         onLocationUpdate={handleUpdateCoords}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 overflow-hidden">
         
         {/* CUSTOMER VIEW */}
         {role === 'customer' && (
-          <div className="space-y-8">
+          <div className="space-y-6 sm:space-y-8 w-full max-w-full">
             
-            <div className="flex items-center justify-between border-b border-blue-100 pb-4">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between border-b border-blue-100 pb-3 sm:pb-4 overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={() => setViewMode('booking')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                  className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
                     viewMode === 'booking'
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-                      : 'bg-white text-gray-500 hover:text-gray-800 border border-gray-200'
+                      : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200'
                   }`}
                 >
                   <Printer className="w-4 h-4" />
@@ -213,10 +213,10 @@ export default function Home() {
 
                 <button
                   onClick={() => setViewMode('orders')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+                  className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
                     viewMode === 'orders'
                       ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
-                      : 'bg-white text-gray-500 hover:text-gray-800 border border-gray-200'
+                      : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200'
                   }`}
                 >
                   <Zap className="w-4 h-4" />
@@ -231,10 +231,10 @@ export default function Home() {
                 highlightOrderId={recentOrderId}
               />
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-5 sm:space-y-6 w-full max-w-full">
                 
                 {/* Hero Feature Banner */}
-                <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-blue-400 rounded-3xl p-6 sm:p-8 shadow-lg shadow-blue-200 relative overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-500 rounded-3xl p-5 sm:p-8 shadow-lg shadow-blue-200 relative overflow-hidden w-full">
                   <div className="absolute right-0 top-0 w-64 h-64 rounded-full bg-white/5 -translate-y-1/3 translate-x-1/3" />
                   <div className="absolute right-20 bottom-0 w-32 h-32 rounded-full bg-white/5 translate-y-1/2" />
                   <div className="max-w-2xl relative">
