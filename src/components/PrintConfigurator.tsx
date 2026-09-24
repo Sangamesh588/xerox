@@ -58,18 +58,18 @@ export function PrintConfigurator({
   };
 
   return (
-    <div className="bg-white border border-blue-100 rounded-3xl p-5 sm:p-6 shadow-sm space-y-6">
+    <div className="bg-white border border-blue-100 rounded-3xl p-4 sm:p-6 shadow-sm space-y-5 sm:space-y-6 w-full max-w-full overflow-hidden">
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-blue-50">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-blue-50">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-              <Sliders className="w-5 h-5" />
+          <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+              <Sliders className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <span>Step 3 — Print & Xerox Options</span>
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5 ml-10">
+          <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5 ml-10">
             Customize color mode, duplex sides, layout, binding and copies
           </p>
         </div>

@@ -109,55 +109,55 @@ export function ShopLocator({
   );
 
   return (
-    <div className="bg-white border border-blue-100 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
+    <div className="bg-white border border-blue-100 rounded-3xl p-4 sm:p-6 shadow-sm space-y-4 sm:space-y-5 w-full max-w-full overflow-hidden">
 
       {/* Header and Location Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-blue-50">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 sm:pb-4 border-b border-blue-50">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-              <MapPin className="w-5 h-5" />
+          <h2 className="text-base sm:text-lg font-bold text-gray-900 flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+              <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <span>Step 1 — Choose Nearby Xerox Shop</span>
           </h2>
-          <p className="text-xs text-gray-500 mt-1 ml-10">
+          <p className="text-[11px] sm:text-xs text-gray-500 mt-0.5 ml-10">
             Pick a verified shop with live rates, duplex printing & instant pickup
           </p>
         </div>
 
         {/* Action Buttons: Google Map & GPS Detect */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setIsMapPickerOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-200 transition cursor-pointer"
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-200 transition cursor-pointer"
           >
             <Map className="w-4 h-4" />
-            <span>🗺️ Select Location on Google Map</span>
+            <span>🗺️ Set Location on Map</span>
           </button>
 
           <button
             type="button"
             onClick={detectLocation}
             disabled={isLocating}
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs transition cursor-pointer"
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs transition cursor-pointer shrink-0"
             title="Auto detect GPS"
           >
             {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
-            <span className="hidden sm:inline">{isLocating ? 'Locating...' : 'GPS Auto'}</span>
+            <span className="hidden xs:inline">{isLocating ? 'Locating...' : 'GPS'}</span>
           </button>
         </div>
       </div>
 
       {/* Active User Location Banner */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-200 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
-        <div className="flex items-center gap-2.5">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-200 rounded-2xl p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+        <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
             <Compass className="w-4 h-4" />
           </div>
-          <div>
-            <span className="text-gray-500 font-medium block text-[11px]">Your Current Location:</span>
-            <span className="font-bold text-gray-900 text-xs sm:text-sm">
+          <div className="min-w-0 flex-1">
+            <span className="text-gray-500 font-medium block text-[10px] sm:text-[11px]">Your Current Location:</span>
+            <span className="font-bold text-gray-900 text-xs sm:text-sm truncate block">
               {userLocationName || 'Location not set — Click to set location on Google Map'}
             </span>
           </div>
@@ -166,7 +166,7 @@ export function ShopLocator({
         <button
           type="button"
           onClick={() => setIsMapPickerOpen(true)}
-          className="text-blue-600 hover:text-blue-800 font-bold underline shrink-0 text-xs cursor-pointer"
+          className="text-blue-600 hover:text-blue-800 font-bold underline shrink-0 text-xs cursor-pointer self-start sm:self-auto"
         >
           {userCoords ? 'Change on Map →' : 'Set Location on Map →'}
         </button>

@@ -152,12 +152,12 @@ export function CustomerDashboard({ onNewOrder, highlightOrderId }: CustomerDash
                 </div>
 
                 {/* Progress Stepper */}
-                <div className="py-4">
-                  <div className="relative flex items-center justify-between max-w-xl mx-auto px-4">
-                    <div className="absolute left-6 right-6 top-1/2 -translate-y-1/2 h-1 bg-gray-200 -z-0" />
+                <div className="py-2 sm:py-4 overflow-hidden">
+                  <div className="relative flex items-center justify-between max-w-xl mx-auto px-2 sm:px-4">
+                    <div className="absolute left-4 right-4 sm:left-6 sm:right-6 top-1/2 -translate-y-1/2 h-1 bg-gray-200 z-0" />
                     <div
-                      className="absolute left-6 top-1/2 -translate-y-1/2 h-1 bg-blue-600 transition-all duration-500 -z-0"
-                      style={{ width: `calc(${((stepIndex - 1) / 3) * 100}% - 12px)` }}
+                      className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 h-1 bg-blue-600 transition-all duration-500 z-0"
+                      style={{ width: `calc(${((stepIndex - 1) / 3) * 100}% - 8px)` }}
                     />
 
                     {[
@@ -167,14 +167,14 @@ export function CustomerDashboard({ onNewOrder, highlightOrderId }: CustomerDash
                       { step: 4, label: 'Completed' },
                     ].map(({ step, label }) => (
                       <div key={step} className="flex flex-col items-center relative z-10">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-extrabold shadow-sm transition ${
+                        <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-[11px] sm:text-xs font-extrabold shadow-sm transition ${
                           stepIndex >= step
-                            ? 'bg-blue-600 text-white ring-4 ring-blue-100'
+                            ? 'bg-blue-600 text-white ring-2 sm:ring-4 ring-blue-100'
                             : 'bg-white border-2 border-gray-300 text-gray-400'
                         }`}>
                           {stepIndex > step ? '✓' : step}
                         </div>
-                        <span className={`text-[11px] font-bold mt-1.5 ${
+                        <span className={`text-[10px] sm:text-[11px] font-bold mt-1 ${
                           stepIndex >= step ? 'text-blue-700' : 'text-gray-400'
                         }`}>
                           {label}
