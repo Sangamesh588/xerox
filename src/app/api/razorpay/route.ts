@@ -25,7 +25,10 @@ export async function POST(request: Request) {
       });
 
       const data = await res.json();
-      return NextResponse.json(data);
+      return NextResponse.json({
+        ...data,
+        key: keyId,
+      });
     }
 
     // Fallback Mock Razorpay order for instant testing without API keys
