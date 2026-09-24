@@ -1,0 +1,129 @@
+[
+  {
+    "id": "shop-1790275296763",
+    "name": "bhagya",
+    "ownerName": "bhagya",
+    "ownerPhone": "+91 98765 43210",
+    "ownerEmail": "owner@xerox.com",
+    "ownerUsername": "bhagya",
+    "ownerPassword": "bhagya",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=12.9344,77.6060",
+    "address": "ink",
+    "lat": 12.9344,
+    "lng": 77.606,
+    "rating": 4.8,
+    "reviewCount": 1,
+    "isOpen": true,
+    "openingHours": "08:00 AM - 09:30 PM",
+    "rates": {
+      "bwSingle": 1.5,
+      "bwDouble": 2.5,
+      "colorSingle": 6,
+      "colorDouble": 10,
+      "spiralBinding": 30,
+      "hardBinding": 80,
+      "cornerClip": 15
+    },
+    "features": [
+      "Duplex Xerox",
+      "Color Printing",
+      "Spiral Binding"
+    ]
+  },
+  {
+    "id": "shop-koramangala-blr",
+    "name": "PrintStop Fast Xerox & Stationery",
+    "ownerName": "Suresh Patel",
+    "ownerPhone": "+91 97420 67890",
+    "ownerEmail": "suresh@xerox.com",
+    "ownerUsername": "owner_suresh",
+    "ownerPassword": "bhagya@123",
+    "address": "80 Feet Road, 5th Block, Koramangala, Bangalore - 560095",
+    "lat": 12.9352,
+    "lng": 77.6245,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=12.9352,77.6245",
+    "rating": 4.8,
+    "reviewCount": 98,
+    "isOpen": true,
+    "openingHours": "08:00 AM - 09:30 PM",
+    "rates": {
+      "bwSingle": 1.25,
+      "bwDouble": 2,
+      "colorSingle": 5,
+      "colorDouble": 9,
+      "spiralBinding": 30,
+      "hardBinding": 80,
+      "cornerClip": 12
+    },
+    "features": [
+      "Duplex Xerox",
+      "Glossy Paper",
+      "Color Printing",
+      "Hardcover Binding"
+    ]
+  },
+  {
+    "id": "shop-pes-blr",
+    "name": "Prime Copy & Thesis Binding Center",
+    "ownerName": "Manjunath Rao",
+    "ownerPhone": "+91 98860 54321",
+    "ownerEmail": "manju@xerox.com",
+    "ownerUsername": "owner_manju",
+    "ownerPassword": "bhagya@123",
+    "address": "Near PES University Ring Road Campus, Banashankari 3rd Stage, Bangalore - 560085",
+    "lat": 12.9343,
+    "lng": 77.5348,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=12.9343,77.5348",
+    "rating": 4.7,
+    "reviewCount": 64,
+    "isOpen": true,
+    "openingHours": "08:00 AM - 10:30 PM",
+    "rates": {
+      "bwSingle": 1.5,
+      "bwDouble": 2.25,
+      "colorSingle": 6,
+      "colorDouble": 10,
+      "spiralBinding": 25,
+      "hardBinding": 70,
+      "cornerClip": 10
+    },
+    "features": [
+      "Engineering Drawing Printing",
+      "Thesis Hard Binding",
+      "Duplex",
+      "Spiral Binding"
+    ]
+  },
+  {
+    "id": "shop-iitd-delhi",
+    "name": "IIT TechPrint & Xerox Hub",
+    "ownerName": "Anand Sharma",
+    "ownerPhone": "+91 99100 23456",
+    "ownerEmail": "anand@xerox.com",
+    "ownerUsername": "owner_anand",
+    "ownerPassword": "bhagya@123",
+    "address": "Hauz Khas Market, Near IIT Delhi Gate, New Delhi - 110016",
+    "lat": 28.545,
+    "lng": 77.1926,
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=28.5450,77.1926",
+    "rating": 4.9,
+    "reviewCount": 210,
+    "isOpen": true,
+    "openingHours": "07:00 AM - 11:00 PM",
+    "rates": {
+      "bwSingle": 1,
+      "bwDouble": 1.8,
+      "colorSingle": 5,
+      "colorDouble": 8,
+      "spiralBinding": 20,
+      "hardBinding": 65,
+      "cornerClip": 8
+    },
+    "features": [
+      "Ultra Fast Bulk Xerox",
+      "Duplex",
+      "Color Printing",
+      "Spiral Binding"
+    ]
+  }
+]

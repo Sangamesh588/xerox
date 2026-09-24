@@ -21,15 +21,14 @@ export function LoginModal({ isOpen, targetRole, onClose, onSuccess }: LoginModa
 
   if (!isOpen) return null;
 
-  const handleInitialSubmit = (e: React.FormEvent) => {
+  const handleInitialSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
 
-    const res = authenticateUser(targetRole, username, password);
+    const res = await authenticateUser(targetRole, username, password);
 
     if (res.success) {
       if (targetRole === 'admin') {
-        // Trigger 2-step OTP Verification for Super Admin
         setOtpStep(true);
       } else {
         onSuccess(targetRole, res.shop);
@@ -44,7 +43,6 @@ export function LoginModal({ isOpen, targetRole, onClose, onSuccess }: LoginModa
     e.preventDefault();
     setErrorMsg('');
 
-    // Verification code check (e.g. 8821)
     if (otpInput.trim() === '8821' || otpInput.trim() === '1234') {
       onSuccess('admin');
       resetForm();
@@ -62,36 +60,37 @@ export function LoginModal({ isOpen, targetRole, onClose, onSuccess }: LoginModa
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
-      <div className="bg-slate-900 border border-violet-500/30 rounded-2xl w-full max-w-md shadow-2xl p-6 relative text-white my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/60 backdrop-blur-md animate-in fade-in">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-5 sm:p-7 relative text-gray-900 my-6 border border-blue-100">
         
         <button
+          type="button"
           onClick={() => {
             resetForm();
             onClose();
           }}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-lg bg-slate-800/50 transition"
+          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-700 rounded-full hover:bg-gray-100 transition cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-violet-500/20">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-11 h-11 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
             {targetRole === 'admin' ? <ShieldCheck className="w-6 h-6" /> : <Store className="w-6 h-6" />}
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white capitalize">
-              {targetRole === 'admin' ? 'Super Admin Security Portal' : 'Shop Owner Login'}
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 capitalize">
+              {targetRole === 'admin' ? 'Super Admin Portal' : 'Shop Owner Login'}
             </h3>
-            <p className="text-xs text-slate-400">
-              {otpStep ? 'Step 2: Admin OTP Verification' : 'Enter assigned credentials'}
+            <p className="text-xs text-gray-500">
+              {otpStep ? 'Step 2: Admin OTP Verification' : 'Enter assigned login credentials'}
             </p>
           </div>
         </div>
 
         {errorMsg && (
-          <div className="mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 px-3.5 py-2.5 rounded-xl text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-2xl text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
             <span>{errorMsg}</span>
           </div>
         )}
@@ -99,42 +98,42 @@ export function LoginModal({ isOpen, targetRole, onClose, onSuccess }: LoginModa
         {!otpStep ? (
           <form onSubmit={handleInitialSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                 {targetRole === 'admin' ? 'Admin ID / Email Address' : 'User ID / Username'}
               </label>
               <div className="relative">
-                <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <User className="w-4 h-4 text-blue-400 absolute left-3.5 top-3" />
                 <input
                   type="text"
                   required
                   placeholder={targetRole === 'admin' ? 'Enter Admin ID / Email' : 'Enter User ID'}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 font-mono"
+                  className="w-full bg-blue-50/40 border border-blue-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                 Password
               </label>
               <div className="relative">
-                <KeyRound className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <KeyRound className="w-4 h-4 text-blue-400 absolute left-3.5 top-3" />
                 <input
                   type="password"
                   required
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 font-mono"
+                  className="w-full bg-blue-50/40 border border-blue-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                 />
               </div>
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-violet-500/20 transition cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-extrabold text-sm shadow-lg shadow-blue-200 transition cursor-pointer flex items-center justify-center gap-2"
             >
               <span>{targetRole === 'admin' ? 'Proceed to OTP Verification' : 'Verify & Enter Console'}</span>
               <CheckCircle2 className="w-4 h-4" />
@@ -142,19 +141,19 @@ export function LoginModal({ isOpen, targetRole, onClose, onSuccess }: LoginModa
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <div className="bg-slate-950 border border-violet-500/30 rounded-xl p-3.5 text-xs space-y-1">
-              <div className="font-bold text-cyan-300 flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4 text-violet-400" />
-                <span>Admin Verification Code Sent</span>
+            <div className="bg-blue-50/70 border border-blue-200 rounded-2xl p-3.5 text-xs space-y-1">
+              <div className="font-bold text-blue-800 flex items-center gap-1.5">
+                <ShieldAlert className="w-4 h-4 text-blue-600" />
+                <span>Admin Verification Code</span>
               </div>
-              <p className="text-slate-400 text-[11px]">
-                A 4-digit security OTP verification code was dispatched to admin email.
+              <p className="text-gray-600 text-[11px]">
+                Enter the 4-digit code (use <strong className="text-blue-700">8821</strong> for testing).
               </p>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Enter 4-Digit Security OTP Verification Code
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                4-Digit Security OTP Code
               </label>
               <input
                 type="text"
@@ -163,16 +162,16 @@ export function LoginModal({ isOpen, targetRole, onClose, onSuccess }: LoginModa
                 placeholder="e.g. 8821"
                 value={otpInput}
                 onChange={(e) => setOtpInput(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-center text-lg tracking-widest font-mono text-cyan-300 font-extrabold focus:outline-none focus:border-violet-500"
+                className="w-full bg-blue-50/40 border border-blue-200 rounded-2xl px-4 py-3 text-center text-xl tracking-widest font-mono text-blue-700 font-extrabold focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 transition cursor-pointer flex items-center justify-center gap-2"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold text-sm shadow-lg shadow-emerald-200 transition cursor-pointer flex items-center justify-center gap-2"
             >
               <ShieldCheck className="w-4 h-4" />
-              <span>Verify OTP & Access Admin Console</span>
+              <span>Verify OTP & Access Console</span>
             </button>
           </form>
         )}

@@ -1,54 +1,29 @@
 import { NextResponse } from 'next/server';
 import { XeroxShop } from '@/types';
-
-// In-Memory Server Store for global shop persistence across all devices & users
-let globalShops: XeroxShop[] = [
-  {
-    id: 'shop-sangamesh',
-    name: 'Sangamesh Xerox & Digital Print Hub',
-    ownerName: 'Sangamesh',
-    ownerPhone: '+91 98765 43210',
-    ownerEmail: 'sangamesh.print@gmail.com',
-    ownerUsername: 'sangamesh',
-    ownerPassword: 'bhagya@123',
-    address: 'Opp. Main College Gate, Hosur Road, Bangalore',
-    lat: 12.9344,
-    lng: 77.6060,
-    rating: 4.9,
-    reviewCount: 150,
-    isOpen: true,
-    openingHours: '08:00 AM - 10:00 PM',
-    rates: {
-      bwSingle: 1.50,
-      bwDouble: 2.50,
-      colorSingle: 6.00,
-      colorDouble: 10.00,
-      spiralBinding: 25.00,
-      hardBinding: 75.00,
-      cornerClip: 10.00,
-    },
-    features: ['Duplex High Speed Xerox', 'Color Printing', 'Spiral & Hard Binding'],
-  },
-];
+import { getStoredShops, saveStoredShops } from '@/lib/serverDb';
 
 export async function GET() {
-  return NextResponse.json(globalShops);
+  const shops = await getStoredShops();
+  return NextResponse.json(shops);
 }
 
 export async function POST(request: Request) {
   try {
     const newShop: XeroxShop = await request.json();
-    
-    // Check if shop already exists
-    const existingIndex = globalShops.findIndex((s) => s.id === newShop.id);
+    const shops = await getStoredShops();
+
+    // Upsert: update if exists, insert if new
+    const existingIndex = shops.findIndex((s) => s.id === newShop.id);
     if (existingIndex >= 0) {
-      globalShops[existingIndex] = { ...globalShops[existingIndex], ...newShop };
+      shops[existingIndex] = { ...shops[existingIndex], ...newShop };
     } else {
-      globalShops.unshift(newShop);
+      shops.unshift(newShop);
     }
 
-    return NextResponse.json({ success: true, shops: globalShops });
+    await saveStoredShops(shops);
+    return NextResponse.json({ success: true, shops });
   } catch (err) {
+    console.error('POST /api/shops error:', err);
     return NextResponse.json({ error: 'Failed to save shop' }, { status: 500 });
   }
 }
@@ -56,20 +31,26 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
-    const { shopId, action, rates, isOpen, googleMapsUrl } = body;
+    const { shopId, action, rates, isOpen, googleMapsUrl, lat, lng } = body;
 
-    const shopIndex = globalShops.findIndex((s) => s.id === shopId);
+    const shops = await getStoredShops();
+    const shopIndex = shops.findIndex((s) => s.id === shopId);
+
     if (shopIndex >= 0) {
       if (action === 'toggleOpen') {
-        globalShops[shopIndex].isOpen = isOpen;
+        shops[shopIndex].isOpen = isOpen;
       } else if (action === 'updateRates') {
-        if (rates) globalShops[shopIndex].rates = rates;
-        if (googleMapsUrl !== undefined) globalShops[shopIndex].googleMapsUrl = googleMapsUrl;
+        if (rates) shops[shopIndex].rates = rates;
+        if (googleMapsUrl !== undefined) shops[shopIndex].googleMapsUrl = googleMapsUrl;
+        if (lat !== undefined && !isNaN(lat)) shops[shopIndex].lat = lat;
+        if (lng !== undefined && !isNaN(lng)) shops[shopIndex].lng = lng;
       }
+      await saveStoredShops(shops);
     }
 
-    return NextResponse.json({ success: true, shops: globalShops });
+    return NextResponse.json({ success: true, shops });
   } catch (err) {
+    console.error('PUT /api/shops error:', err);
     return NextResponse.json({ error: 'Failed to update shop' }, { status: 500 });
   }
 }
@@ -80,11 +61,15 @@ export async function DELETE(request: Request) {
     const shopId = searchParams.get('id');
 
     if (shopId) {
-      globalShops = globalShops.filter((s) => s.id !== shopId);
+      let shops = await getStoredShops();
+      shops = shops.filter((s) => s.id !== shopId);
+      await saveStoredShops(shops);
+      return NextResponse.json({ success: true, shops });
     }
 
-    return NextResponse.json({ success: true, shops: globalShops });
+    return NextResponse.json({ error: 'Missing shop id' }, { status: 400 });
   } catch (err) {
+    console.error('DELETE /api/shops error:', err);
     return NextResponse.json({ error: 'Failed to delete shop' }, { status: 500 });
   }
 }

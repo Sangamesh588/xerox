@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Header } from '@/components/Header';
 import { DocumentUploader } from '@/components/DocumentUploader';
 import { PrintConfigurator } from '@/components/PrintConfigurator';
@@ -9,11 +9,10 @@ import { OrderSummaryModal } from '@/components/OrderSummaryModal';
 import { CustomerDashboard } from '@/components/CustomerDashboard';
 import { ShopOwnerDashboard } from '@/components/ShopOwnerDashboard';
 import { AdminDashboard } from '@/components/AdminDashboard';
-import { LocationModal } from '@/components/LocationModal';
 import { LoginModal } from '@/components/LoginModal';
 
 import { DocumentDetails, PrintConfiguration, XeroxShop, XeroxOrder } from '@/types';
-import { fetchShopsFromServer, getShops } from '@/lib/storage';
+import { fetchShopsFromServer } from '@/lib/storage';
 import { calculatePrice } from '@/lib/pricing';
 import { Sparkles, Printer, Zap } from 'lucide-react';
 
@@ -30,13 +29,13 @@ export default function Home() {
   const [shops, setShops] = useState<XeroxShop[]>([]);
   const [selectedShop, setSelectedShop] = useState<XeroxShop | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'booking' | 'orders'>('booking');
   const [recentOrderId, setRecentOrderId] = useState<string | undefined>();
 
-  // Location State
+  // Location State — starts empty, detected via GPS or set via Map
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [userLocationName, setUserLocationName] = useState<string>('Detecting location...');
+  const [userLocationName, setUserLocationName] = useState<string>('Select location on Google Map');
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   // Print configuration
   const [config, setConfig] = useState<PrintConfiguration>({
@@ -54,37 +53,91 @@ export default function Home() {
     orientation: 'portrait',
   });
 
+  // ── ACCURATE REAL GPS GEOLOCATION & REVERSE GEOCODING ─────────────────
   useEffect(() => {
-    if (typeof window !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          setUserCoords(coords);
-          setUserLocationName('Your Current Location');
-        },
-        (err) => {
-          console.warn('GPS location access denied or timeout:', err);
-          setUserCoords({ lat: 12.9344, lng: 77.6060 });
-          setUserLocationName('College Road, Bangalore');
-        },
-        { enableHighAccuracy: false, timeout: 5000 }
-      );
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      setLocationError('Geolocation not supported');
+      return;
     }
+
+    let isCancelled = false;
+
+    const setLocation = (lat: number, lng: number, fallbackName: string) => {
+      if (isCancelled) return;
+      setUserCoords({ lat, lng });
+      setLocationError(null);
+
+      // Reverse geocode to get REAL physical address for the detected GPS coordinates
+      fetch(`/api/geocode?action=reverse&lat=${lat}&lng=${lng}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (!isCancelled && data.address) {
+            setUserLocationName(data.address);
+          } else if (!isCancelled) {
+            setUserLocationName(fallbackName);
+          }
+        })
+        .catch(() => {
+          if (!isCancelled) setUserLocationName(fallbackName);
+        });
+    };
+
+    // Step 1: Try high accuracy GPS chip first
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocation(
+          pos.coords.latitude,
+          pos.coords.longitude,
+          `📍 GPS Location (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`
+        );
+      },
+      () => {
+        // Step 2: Fallback to low accuracy Wi-Fi/cell tower
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setLocation(
+              pos.coords.latitude,
+              pos.coords.longitude,
+              `📍 Approximate Location (${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)})`
+            );
+          },
+          () => {
+            // Step 3: IP-based fallback
+            fetch('https://ipapi.co/json/')
+              .then((r) => r.json())
+              .then((data) => {
+                if (data.latitude && data.longitude) {
+                  setLocation(data.latitude, data.longitude, `📍 ${data.city || 'Your Area'} (IP-based)`);
+                } else {
+                  setLocationError('Could not detect location');
+                }
+              })
+              .catch(() => {
+                setLocationError('Location detection failed');
+              });
+          },
+          { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
 
-  const reloadShopsList = async () => {
+  // ── SHOP SYNC (polls server every 3 seconds) ─────────────────────────
+  const reloadShopsList = useCallback(async () => {
     const loadedShops = await fetchShopsFromServer();
     setShops(loadedShops);
-    if (loadedShops.length > 0 && !selectedShop) {
-      setSelectedShop(loadedShops[0]);
-    }
-  };
+  }, []);
 
   useEffect(() => {
     reloadShopsList();
-    const interval = setInterval(reloadShopsList, 2000);
+    const interval = setInterval(reloadShopsList, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [reloadShopsList]);
 
   const handleRoleChangeRequest = (newRole: 'customer' | 'owner' | 'admin') => {
     if (newRole === 'customer') {
@@ -125,16 +178,17 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-violet-500 selection:text-white flex flex-col">
+    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-blue-500 selection:text-white flex flex-col">
       
       <Header
         currentRole={role}
         onRoleChange={handleRoleChangeRequest}
         userLocationName={userLocationName}
-        onOpenLocationModal={() => setIsLocationModalOpen(true)}
         isAuthenticated={isAuthenticated}
         activeShopName={authenticatedShop?.name}
         onLogout={handleLogout}
+        userCoords={userCoords}
+        onLocationUpdate={handleUpdateCoords}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -143,14 +197,14 @@ export default function Home() {
         {role === 'customer' && (
           <div className="space-y-8">
             
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between border-b border-blue-100 pb-4">
+              <div className="flex items-center gap-2">
                 <button
                   onClick={() => setViewMode('booking')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
                     viewMode === 'booking'
-                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
-                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                      : 'bg-white text-gray-500 hover:text-gray-800 border border-gray-200'
                   }`}
                 >
                   <Printer className="w-4 h-4" />
@@ -161,8 +215,8 @@ export default function Home() {
                   onClick={() => setViewMode('orders')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
                     viewMode === 'orders'
-                      ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md'
-                      : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                      : 'bg-white text-gray-500 hover:text-gray-800 border border-gray-200'
                   }`}
                 >
                   <Zap className="w-4 h-4" />
@@ -177,22 +231,24 @@ export default function Home() {
                 highlightOrderId={recentOrderId}
               />
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-6">
                 
                 {/* Hero Feature Banner */}
-                <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-violet-950/40 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-                  <div className="max-w-2xl">
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/30 text-cyan-300 text-xs font-extrabold mb-3">
+                <div className="bg-gradient-to-r from-blue-600 via-blue-500 to-blue-400 rounded-3xl p-6 sm:p-8 shadow-lg shadow-blue-200 relative overflow-hidden">
+                  <div className="absolute right-0 top-0 w-64 h-64 rounded-full bg-white/5 -translate-y-1/3 translate-x-1/3" />
+                  <div className="absolute right-20 bottom-0 w-32 h-32 rounded-full bg-white/5 translate-y-1/2" />
+                  <div className="max-w-2xl relative">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-extrabold mb-3">
                       <Sparkles className="w-3.5 h-3.5" />
                       <span>Smart Xerox Booking & Document Printing</span>
                     </div>
 
-                    <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
-                      Pick nearby shop, upload document & collect easily.
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
+                      Pick a nearby shop, upload your document & collect easily. 🖨️
                     </h1>
 
-                    <p className="text-xs sm:text-sm text-slate-400 mt-2">
-                      Instant page detection, B&W or Color, Front & Back duplex, 4-in-1 layout, spiral binding & Razorpay payment.
+                    <p className="text-sm text-blue-100 mt-2">
+                      Instant page detection · B&W or Color · Duplex · 4-in-1 layout · Spiral binding · Razorpay payment
                     </p>
                   </div>
                 </div>
@@ -204,6 +260,7 @@ export default function Home() {
                   onSelectShop={(s) => setSelectedShop(s)}
                   userCoords={userCoords}
                   onUpdateCoords={handleUpdateCoords}
+                  userLocationName={userLocationName}
                 />
 
                 {/* STEP 2: UPLOAD DOCUMENT */}
@@ -272,22 +329,15 @@ export default function Home() {
         />
       )}
 
-      <LocationModal
-        isOpen={isLocationModalOpen}
-        onClose={() => setIsLocationModalOpen(false)}
-        userLocationName={userLocationName}
-        onSelectLocation={handleUpdateCoords}
-      />
-
-      <footer className="bg-slate-900/50 border-t border-slate-800 text-slate-500 py-6 text-xs text-center">
+      <footer className="bg-white border-t border-blue-100 text-gray-400 py-5 text-xs text-center">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-slate-400">
-            <Printer className="w-4 h-4 text-violet-400" />
-            <span className="font-bold text-slate-300">Xerox Express</span>
+          <div className="flex items-center gap-2 text-gray-600">
+            <Printer className="w-4 h-4 text-blue-500" />
+            <span className="font-bold text-gray-800">Xerox Express</span>
             <span>• Instant Online Xerox Booking</span>
           </div>
 
-          <div>
+          <div className="text-gray-400">
             Razorpay Payment Gateway Enabled
           </div>
         </div>
