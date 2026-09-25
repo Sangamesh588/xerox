@@ -1,0 +1,47 @@
+[
+  {
+    "id": "ORD-7858",
+    "customerName": "Sangamesh Nidode",
+    "customerPhone": "ada",
+    "customerEmail": "sangameshnidode58@gmail.com",
+    "shopId": "shop-iitd-delhi",
+    "shopName": "IIT TechPrint & Xerox Hub",
+    "document": {
+      "fileName": "WhatsApp Image 2026-09-13 at 10.16.27 PM.jpeg",
+      "fileSize": 144368,
+      "fileType": "image/jpeg",
+      "fileUrl": "blob:http://localhost:3000/5af46b46-f75d-49a2-9484-f728175815f7",
+      "totalPages": 1
+    },
+    "config": {
+      "colorMode": "bw",
+      "sideMode": "single",
+      "nUp": "4in1",
+      "paperSize": "A3",
+      "paperGsm": "70",
+      "binding": "none",
+      "pageRangeType": "all",
+      "startPage": 1,
+      "endPage": 1,
+      "customPageRange": "1-1",
+      "copies": 1,
+      "orientation": "portrait"
+    },
+    "pricing": {
+      "effectivePages": 1,
+      "sheetsNeeded": 1,
+      "printCost": 2,
+      "bindingCost": 0,
+      "gsmCost": 0,
+      "paperSizeCost": 1.5,
+      "deliveryFee": 0,
+      "totalCost": 5
+    },
+    "fulfillment": "pickup",
+    "status": "pending",
+    "paymentStatus": "paid",
+    "createdAt": "2026-09-25T08:04:28.640Z",
+    "updatedAt": "2026-09-25T08:05:14.059Z",
+    "paymentId": "pay_TgCIHlYKAYrfj1"
+  }
+]

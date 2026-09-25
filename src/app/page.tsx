@@ -116,7 +116,7 @@ export default function Home() {
                 setLocationError('Location detection failed');
               });
           },
-          { enableHighAccuracy: false, timeout: 5000, maximumAge: 60000 }
+          { enableHighAccuracy: false, timeout: 5000, maximumAge: 0 }
         );
       },
       { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }

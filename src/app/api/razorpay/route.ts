@@ -1,54 +1,80 @@
 import { NextResponse } from 'next/server';
+import Razorpay from 'razorpay';
 
+/**
+ * POST /api/razorpay
+ * Creates a Razorpay order on the backend.
+ * The KEY_SECRET never leaves the server.
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { amount, currency = 'INR', orderId } = body;
+    const { amount, currency = 'INR', receipt } = body;
+
+    // Validate: amount must be a positive number
+    const amountNum = Number(amount);
+    if (!amountNum || isNaN(amountNum) || amountNum <= 0) {
+      return NextResponse.json(
+        { error: 'Invalid amount. Amount must be a positive number.' },
+        { status: 400 }
+      );
+    }
+
+    // Convert to paise and enforce minimum of 100 paise (₹1)
+    const amountInPaise = Math.round(amountNum * 100);
+    if (amountInPaise < 100) {
+      return NextResponse.json(
+        { error: 'Minimum order amount is ₹1 (100 paise).' },
+        { status: 400 }
+      );
+    }
 
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
 
-    if (keyId && keySecret) {
-      // Real Razorpay API call
-      const auth = Buffer.from(`${keyId}:${keySecret}`).toString('base64');
-      const res = await fetch('https://api.razorpay.com/v1/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${auth}`,
-        },
-        body: JSON.stringify({
-          amount: Math.round(amount * 100), // amount in paise
-          currency,
-          receipt: orderId || `receipt_${Date.now()}`,
-        }),
-      });
-
-      const data = await res.json();
-      return NextResponse.json({
-        ...data,
-        key: keyId,
-      });
+    if (!keyId || !keySecret) {
+      console.error('Razorpay credentials missing in environment variables.');
+      return NextResponse.json(
+        { error: 'Payment gateway not configured. Please contact support.' },
+        { status: 500 }
+      );
     }
 
-    // Fallback Mock Razorpay order for instant testing without API keys
-    const mockRazorpayOrderId = `order_${Math.random().toString(36).substring(2, 12)}`;
-    return NextResponse.json({
-      id: mockRazorpayOrderId,
-      entity: 'order',
-      amount: Math.round(amount * 100),
-      amount_paid: 0,
-      amount_due: Math.round(amount * 100),
+    const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
+
+    const order = await razorpay.orders.create({
+      amount: amountInPaise,
       currency,
-      receipt: orderId || `receipt_${Date.now()}`,
-      status: 'created',
-      attempts: 0,
-      created_at: Math.floor(Date.now() / 1000),
-      isMock: true,
-      key: keyId || 'rzp_test_XeroxBooking2026',
+      receipt: receipt || `rcpt_${Date.now()}`,
     });
-  } catch (error) {
-    console.error('Razorpay Order API Error:', error);
-    return NextResponse.json({ error: 'Failed to create Razorpay order' }, { status: 500 });
+
+    // Return only safe fields — KEY_SECRET never sent to client
+    return NextResponse.json({
+      id: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      receipt: order.receipt,
+    });
+  } catch (error: unknown) {
+    console.error('Razorpay create-order error:', error);
+
+    // Surface Razorpay API errors cleanly
+    if (
+      error &&
+      typeof error === 'object' &&
+      'statusCode' in error &&
+      'error' in error
+    ) {
+      const rzpErr = error as { statusCode: number; error: { description: string } };
+      return NextResponse.json(
+        { error: rzpErr.error?.description || 'Razorpay API error' },
+        { status: rzpErr.statusCode || 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to create payment order. Please try again.' },
+      { status: 500 }
+    );
   }
 }
