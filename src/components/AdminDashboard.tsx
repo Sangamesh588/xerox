@@ -1,7 +1,19 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, Store, UserPlus, RefreshCw, KeyRound, Trash2, MapPin, Map } from 'lucide-react';
+import {
+  ShieldAlert,
+  Store,
+  UserPlus,
+  RefreshCw,
+  KeyRound,
+  Trash2,
+  MapPin,
+  Map,
+  Navigation,
+  Compass,
+  Loader2,
+} from 'lucide-react';
 import { XeroxShop } from '@/types';
 import { fetchShopsFromServer, addShop, deleteShop } from '@/lib/storage';
 import { GoogleMapPicker } from './GoogleMapPicker';
@@ -12,6 +24,8 @@ export function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [shopMapOpen, setShopMapOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationStatus, setLocationStatus] = useState('');
 
   // Form State for Adding New Shop
   const [name, setName] = useState('');
@@ -22,8 +36,8 @@ export function AdminDashboard() {
   const [ownerPassword, setOwnerPassword] = useState('');
   const [googleMapsUrl, setGoogleMapsUrl] = useState('');
   const [address, setAddress] = useState('');
-  const [lat, setLat] = useState('12.9344');
-  const [lng, setLng] = useState('77.6060');
+  const [lat, setLat] = useState('');
+  const [lng, setLng] = useState('');
   const [bwSingle, setBwSingle] = useState('1.50');
   const [bwDouble, setBwDouble] = useState('2.50');
   const [colorSingle, setColorSingle] = useState('6.00');
@@ -48,8 +62,69 @@ export function AdminDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // Real device GPS detection identical to Customer UI
+  const detectLocation = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      setLocationStatus('Geolocation is not supported by your browser');
+      return;
+    }
+    setIsLocating(true);
+    setLocationStatus('Getting accurate GPS position...');
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setIsLocating(false);
+        setLocationStatus(`✅ GPS location detected (±${Math.round(pos.coords.accuracy)}m)`);
+        setLat(coords.lat.toFixed(6));
+        setLng(coords.lng.toFixed(6));
+        setGoogleMapsUrl(`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`);
+
+        fetch(`/api/geocode?action=reverse&lat=${coords.lat}&lng=${coords.lng}`)
+          .then((r) => r.json())
+          .then((data) => {
+            setAddress(data.address || `📍 GPS Location (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`);
+          })
+          .catch(() => {
+            setAddress(`📍 GPS Location (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`);
+          });
+      },
+      () => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+            setIsLocating(false);
+            setLocationStatus(`✅ Approximate location detected (±${Math.round(pos.coords.accuracy)}m)`);
+            setLat(coords.lat.toFixed(6));
+            setLng(coords.lng.toFixed(6));
+            setGoogleMapsUrl(`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`);
+
+            fetch(`/api/geocode?action=reverse&lat=${coords.lat}&lng=${coords.lng}`)
+              .then((r) => r.json())
+              .then((data) => {
+                setAddress(data.address || `📍 Location (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`);
+              })
+              .catch(() => {
+                setAddress(`📍 Location (${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)})`);
+              });
+          },
+          () => {
+            setIsLocating(false);
+            setLocationStatus('⚠️ Location access denied. Click "Set Location on Map" to search.');
+          },
+          { enableHighAccuracy: false, timeout: 5000 }
+        );
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  };
+
   const handleCreateShop = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const finalLat = parseFloat(lat) || 12.9344;
+    const finalLng = parseFloat(lng) || 77.6060;
+
     const newShop: XeroxShop = {
       id: `shop-${Date.now()}`,
       name,
@@ -58,10 +133,10 @@ export function AdminDashboard() {
       ownerEmail: ownerEmail || 'owner@xerox.com',
       ownerUsername: ownerUsername || `owner_${shops.length + 1}`,
       ownerPassword: ownerPassword || 'bhagya@123',
-      googleMapsUrl: googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
-      address,
-      lat: parseFloat(lat),
-      lng: parseFloat(lng),
+      googleMapsUrl: googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${finalLat},${finalLng}`,
+      address: address || 'Main Road, Bengaluru',
+      lat: finalLat,
+      lng: finalLng,
       rating: 4.8,
       reviewCount: 1,
       isOpen: true,
@@ -83,20 +158,21 @@ export function AdminDashboard() {
     await loadShops();
     setSuccessMsg(`"${newShop.name}" was added successfully and is now live!`);
     setTimeout(() => setSuccessMsg(''), 5000);
-    // Reset form
+
+    // Reset form cleanly
     setName('');
     setOwnerName('');
     setAddress('');
     setOwnerUsername('');
     setOwnerPassword('');
     setGoogleMapsUrl('');
-    setLat('12.9344');
-    setLng('77.6060');
+    setLat('');
+    setLng('');
+    setLocationStatus('');
   };
 
   const handleDeleteShop = async (shopId: string, shopName: string) => {
     if (window.confirm(`Are you sure you want to delete "${shopName}"?`)) {
-      // Optimistically update UI immediately
       setShops((prev) => prev.filter((s) => s.id !== shopId));
       const updated = await deleteShop(shopId);
       setShops(updated);
@@ -202,25 +278,105 @@ export function AdminDashboard() {
               </div>
             </div>
 
-            {/* Shop Location — Map Picker */}
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 space-y-3">
-              <div className="font-bold text-blue-700 flex items-center gap-1.5 text-sm">
-                <MapPin className="w-4 h-4 text-blue-500" />
-                <span>Shop Location (Select on Map)</span>
+            {/* SHOP LOCATION SECTION — IDENTICAL TO CUSTOMER UI */}
+            <div className="bg-white border-2 border-blue-200 rounded-3xl p-5 space-y-4 shadow-xs">
+              
+              {/* Controls bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-blue-100">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <span>Shop Location & Coordinates</span>
+                  </h3>
+                  <p className="text-[11px] text-gray-500 mt-0.5 ml-9">
+                    Set precise coordinates for customer distance calculation & instant navigation
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setShopMapOpen(true)}
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md shadow-blue-200 transition cursor-pointer"
+                  >
+                    <Map className="w-4 h-4" />
+                    <span>🗺️ Set Location on Map</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={detectLocation}
+                    disabled={isLocating}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs transition cursor-pointer shrink-0"
+                    title="Auto detect device GPS"
+                  >
+                    {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Navigation className="w-4 h-4" />}
+                    <span>{isLocating ? 'Locating...' : 'GPS'}</span>
+                  </button>
+                </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShopMapOpen(true)}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-dashed border-blue-400 text-blue-600 font-bold text-sm hover:bg-blue-100 transition"
-              >
-                <Map className="w-5 h-5" />
-                <span>
-                  {lat && lng && address
-                    ? `📍 ${address.slice(0, 50)}...`
-                    : '📍 Click to Pick Shop Location on Map'}
-                </span>
-              </button>
+              {/* Active Location Banner */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-200 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Compass className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <span className="text-gray-500 font-medium block text-[10px]">Selected Shop Address:</span>
+                    <span className="font-bold text-gray-900 text-xs sm:text-sm truncate block">
+                      {address || 'Location not set — Click "Set Location on Map" or "GPS" to pick location'}
+                    </span>
+                    {lat && lng && (
+                      <span className="inline-block mt-1 font-mono text-[10px] text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded-md font-bold">
+                        📍 Lat: {parseFloat(lat).toFixed(5)}, Lng: {parseFloat(lng).toFixed(5)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShopMapOpen(true)}
+                  className="text-blue-600 hover:text-blue-800 font-bold underline shrink-0 text-xs cursor-pointer self-start sm:self-auto"
+                >
+                  {address ? 'Change on Map →' : 'Set Location on Map →'}
+                </button>
+              </div>
+
+              {locationStatus && (
+                <div className="text-xs text-blue-800 bg-blue-50/80 px-3 py-1.5 rounded-xl border border-blue-200 flex items-center gap-2">
+                  <span>{locationStatus}</span>
+                </div>
+              )}
+
+              {/* Inputs for fine-tuning address, URL and coordinates */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div>
+                  <label className="block text-gray-600 font-semibold mb-1 text-xs">Full Shop Address (for customer display) *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Shop #4, Ground Floor, Hosur Road, Bangalore"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full bg-blue-50/50 border border-blue-200 rounded-xl px-3.5 py-2.5 text-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-600 font-semibold mb-1 text-xs">Google Maps Link (auto-generated)</label>
+                  <input
+                    type="url"
+                    placeholder="https://maps.google.com/?q=..."
+                    value={googleMapsUrl}
+                    onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                    className="w-full bg-blue-50/50 border border-blue-200 rounded-xl px-3.5 py-2.5 text-gray-800 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                </div>
+              </div>
 
               {lat && lng && (
                 <div className="grid grid-cols-2 gap-3 text-xs">
@@ -231,7 +387,7 @@ export function AdminDashboard() {
                       step="0.000001"
                       value={lat}
                       onChange={(e) => setLat(e.target.value)}
-                      className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-gray-800 font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="w-full bg-blue-50/30 border border-blue-200 rounded-lg px-3 py-2 text-gray-800 font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
                   </div>
                   <div>
@@ -241,40 +397,11 @@ export function AdminDashboard() {
                       step="0.000001"
                       value={lng}
                       onChange={(e) => setLng(e.target.value)}
-                      className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-gray-800 font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="w-full bg-blue-50/30 border border-blue-200 rounded-lg px-3 py-2 text-gray-800 font-mono focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
                   </div>
                 </div>
               )}
-            </div>
-
-            {/* Full Address & Maps URL */}
-            <div className="space-y-3">
-              <div>
-                <label className="block text-gray-600 font-medium mb-1 text-xs">Full Shop Address (for display) *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Shop 12, 2nd Floor, Brigade Road, Bangalore – 560025"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  className="w-full bg-blue-50 border border-blue-200 rounded-xl px-3.5 py-2.5 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-600 font-medium mb-1 text-xs flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Google Maps Link (Optional — auto-generated if empty)</span>
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://maps.google.com/?q=..."
-                  value={googleMapsUrl}
-                  onChange={(e) => setGoogleMapsUrl(e.target.value)}
-                  className="w-full bg-blue-50 border border-blue-200 rounded-xl px-3.5 py-2 text-gray-800 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
-              </div>
             </div>
 
             {/* Pricing Rates */}
@@ -383,10 +510,14 @@ export function AdminDashboard() {
           setLat(coords.lat.toFixed(6));
           setLng(coords.lng.toFixed(6));
           setAddress(addr);
-          // Auto generate Google Maps URL with precise coordinates
           setGoogleMapsUrl(`https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`);
+          setLocationStatus(`📍 Location set from map: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}`);
         }}
-        initialCoords={{ lat: parseFloat(lat), lng: parseFloat(lng) }}
+        initialCoords={
+          lat && lng && !isNaN(parseFloat(lat)) && !isNaN(parseFloat(lng))
+            ? { lat: parseFloat(lat), lng: parseFloat(lng) }
+            : undefined
+        }
         title="Set Shop Location"
         subtitle="Search or move the map to pin your exact shop address"
         confirmLabel="Set as Shop Location"

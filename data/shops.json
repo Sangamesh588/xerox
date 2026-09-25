@@ -1,5 +1,36 @@
 [
   {
+    "id": "shop-1790328618916",
+    "name": "sangamesh",
+    "ownerName": "bhakkti",
+    "ownerPhone": "+91 98765 43210",
+    "ownerEmail": "owner@xerox.com",
+    "ownerUsername": "bhakti",
+    "ownerPassword": "bhakti",
+    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=12.938164516682571,77.56290118998885",
+    "address": "Mount Joy Road, Ashoka Nagara, Bengaluru, Karnataka, India",
+    "lat": 12.938165,
+    "lng": 77.562901,
+    "rating": 4.8,
+    "reviewCount": 1,
+    "isOpen": true,
+    "openingHours": "08:00 AM - 09:30 PM",
+    "rates": {
+      "bwSingle": 1,
+      "bwDouble": 1,
+      "colorSingle": 5,
+      "colorDouble": 5,
+      "spiralBinding": 30,
+      "hardBinding": 80,
+      "cornerClip": 15
+    },
+    "features": [
+      "Duplex Xerox",
+      "Color Printing",
+      "Spiral Binding"
+    ]
+  },
+  {
     "id": "shop-1790275296763",
     "name": "bhagya",
     "ownerName": "bhagya",
@@ -91,38 +122,6 @@
       "Engineering Drawing Printing",
       "Thesis Hard Binding",
       "Duplex",
-      "Spiral Binding"
-    ]
-  },
-  {
-    "id": "shop-iitd-delhi",
-    "name": "IIT TechPrint & Xerox Hub",
-    "ownerName": "Anand Sharma",
-    "ownerPhone": "+91 99100 23456",
-    "ownerEmail": "anand@xerox.com",
-    "ownerUsername": "owner_anand",
-    "ownerPassword": "bhagya@123",
-    "address": "Hauz Khas Market, Near IIT Delhi Gate, New Delhi - 110016",
-    "lat": 28.545,
-    "lng": 77.1926,
-    "googleMapsUrl": "https://www.google.com/maps/search/?api=1&query=28.5450,77.1926",
-    "rating": 4.9,
-    "reviewCount": 210,
-    "isOpen": true,
-    "openingHours": "07:00 AM - 11:00 PM",
-    "rates": {
-      "bwSingle": 1,
-      "bwDouble": 1.8,
-      "colorSingle": 5,
-      "colorDouble": 8,
-      "spiralBinding": 20,
-      "hardBinding": 65,
-      "cornerClip": 8
-    },
-    "features": [
-      "Ultra Fast Bulk Xerox",
-      "Duplex",
-      "Color Printing",
       "Spiral Binding"
     ]
   }
