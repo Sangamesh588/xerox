@@ -285,7 +285,15 @@ export function OrderSummaryModal({
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-blue-200 text-[11px] text-gray-700">
               <div>Color: <strong className="text-gray-900 uppercase font-bold">{config.colorMode}</strong> ({config.sideMode})</div>
               <div>Layout: <strong className="text-blue-700 font-bold">{config.nUp}</strong></div>
-              <div>Binding: <strong className="text-gray-900 capitalize font-bold">{config.binding}</strong></div>
+              <div>Binding: <strong className="text-gray-900 font-bold">{
+                config.binding === 'staple' || config.binding === 'corner_clip'
+                  ? 'Corner Clip'
+                  : config.binding === 'spiral'
+                  ? 'Spiral Binding'
+                  : config.binding === 'hardcover'
+                  ? 'Hardcover Thesis'
+                  : 'None'
+              }</strong></div>
               <div>Pages: <strong className="text-gray-900 font-bold">{pricing.effectivePages} pgs × {config.copies} set</strong></div>
             </div>
           </div>

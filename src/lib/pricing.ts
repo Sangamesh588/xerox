@@ -69,8 +69,8 @@ export function calculatePrice(
     bindingCost = rates.spiralBinding * config.copies;
   } else if (config.binding === 'hardcover') {
     bindingCost = rates.hardBinding * config.copies;
-  } else if (config.binding === 'corner_clip') {
-    bindingCost = rates.cornerClip * config.copies;
+  } else if (config.binding === 'corner_clip' || config.binding === 'staple') {
+    bindingCost = (rates.cornerClip ?? 15) * config.copies;
   }
 
   // Total calculation rounded to nearest rupee
